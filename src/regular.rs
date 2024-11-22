@@ -7,6 +7,9 @@ use tonic::{transport::Server, Request, Response, Status};
 
 mod helloworld;
 
+// Create the gRPC server as usual
+// -------------------------------
+
 #[derive(Default)]
 pub struct MyGreeter {}
 
@@ -22,6 +25,9 @@ impl Greeter for MyGreeter {
         Ok(Response::new(reply))
     }
 }
+
+// start client and server
+// -----------------------
 
 fn main() {
     // start server thread
@@ -52,8 +58,13 @@ fn main() {
             .build()
             .unwrap()
             .block_on(async {
+                // wait for server to start
                 tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+
+                // start gRPC client
                 let client = GreeterClient::connect("http://[::1]:50051").await.unwrap();
+
+                // start tasks
                 let tasks: Vec<_> = (0..32)
                     .map(|_| {
                         let mut client_clone = client.clone();

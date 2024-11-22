@@ -8,6 +8,9 @@ use tonic::{Request, Response, Status};
 
 mod helloworld;
 
+// Create the gRPC server as usual
+// -------------------------------
+
 #[derive(Default, Debug)]
 pub struct MyGreeter {}
 
@@ -23,6 +26,9 @@ impl Greeter for MyGreeter {
         Ok(Response::new(reply))
     }
 }
+
+// Create the tarpc service to send bytes between threads
+// ------------------------------------------------------
 
 #[tarpc::service]
 pub trait BytesRpc {
@@ -48,6 +54,9 @@ impl BytesRpc for BytesServer {
     }
 }
 
+// start client and server
+// -----------------------
+
 fn main() {
     // start server thread
     let (stop_sender, stop_receiver) = tokio::sync::oneshot::channel();
@@ -58,7 +67,9 @@ fn main() {
             .build()
             .unwrap()
             .block_on(async {
+                // create gRPC greeter
                 let greeter = Arc::new(MyGreeter::default());
+                // create tarpc listener
                 let server_addr = (std::net::IpAddr::V6(std::net::Ipv6Addr::LOCALHOST), 8000);
                 let mut listener = tarpc::serde_transport::tcp::listen(
                     &server_addr,
@@ -67,6 +78,7 @@ fn main() {
                 .await
                 .expect("Failed to listen");
                 listener.config_mut().max_frame_length(usize::MAX);
+
                 tokio::select! {
                     _ = listener
                     .filter_map(|r| std::future::ready(r.ok()))
@@ -94,7 +106,10 @@ fn main() {
             .build()
             .unwrap()
             .block_on(async {
+                // wait for server to start
                 tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+
+                // create tarpc client
                 let transport = tarpc::serde_transport::tcp::connect(
                     (std::net::IpAddr::V6(std::net::Ipv6Addr::LOCALHOST), 8000),
                     tarpc::tokio_serde::formats::Bincode::default,
@@ -104,6 +119,8 @@ fn main() {
 
                 let client =
                     BytesRpcClient::new(tarpc::client::Config::default(), transport).spawn();
+
+                // start tasks
                 let tasks: Vec<_> = (0..32)
                     .map(|_| async {
                         for _ in 0..10000 {
