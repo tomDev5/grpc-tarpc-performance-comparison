@@ -42,6 +42,8 @@ pub struct BytesServer {
 
 impl BytesRpc for BytesServer {
     async fn send(self, _: ::tarpc::context::Context, data: Vec<u8>) -> Vec<u8> {
+        // Here is where this implementation cheats a little bit, as we do not need to route the request and we assume the RPC is `say_hello`
+        // Still, tarpc does the equivilant of routing RPC calls, so it's still a fair comparison (I think?)
         let request = HelloRequest::decode(&*data).unwrap();
         let response = self
             .server
